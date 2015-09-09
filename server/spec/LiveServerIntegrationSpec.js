@@ -1,5 +1,5 @@
 var request = require('request');
-var expect = require('../../node_modules/chai/chai').expect;
+var expect = require('../../node_modules/chai/chai.js').expect;
 
 describe('server', function() {
   it('should respond to GET requests for /log with a 200 status code', function(done) {

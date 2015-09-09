@@ -12,7 +12,18 @@ this file and include it in basic-server.js so that it actually works.
 
 **************************************************************/
 
-var requestHandler = function(request, response) {
+var fs = require('fs');
+
+var defaultCorsHeaders = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "access-control-allow-headers": "content-type, accept",
+  "access-control-max-age": 10 // Seconds.
+};
+
+var returnedObj;
+
+exports.requestHandler = function(request, response) {
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -30,7 +41,63 @@ var requestHandler = function(request, response) {
   console.log("Serving request type " + request.method + " for url " + request.url);
 
   // The outgoing status.
-  var statusCode = 200;
+  var statusCode;
+  console.log(request.method);
+  console.log("Request.method ^^^");
+  var responseEndBody = '';
+
+  if (request.url === "/classes/room1" || request.url === "/classes/messages") {
+    if(request.method === "POST"){
+      statusCode = 201;
+      var fullBody = '';
+      request.on('data', function(chunk) {
+        fullBody += chunk;
+        console.log(fullBody);
+      });
+      request.on('end', function() {
+        returnedObj = require('./storage.js');
+        returnedObj.results.push(JSON.parse(fullBody));
+        fs.writeFileSync('server/storage.js', 'module.exports = ' + JSON.stringify(returnedObj));
+      });
+    }
+
+    else{
+      statusCode = 200;
+      if (request.method === "GET") {
+        //responseEndBody = JSON.stringify(returnedObj);
+        responseEndBody = JSON.stringify(require('./storage.js'));
+      }
+    }
+  }
+  else{
+    statusCode = 418;
+  }
+
+  /*
+  if (request.method === "GET") {
+    console.log('hello I am running GET');
+    if (request.url === "/classes/room1" || request.url === "/classes/messages") {
+      statusCode = 200;
+    } else {
+      statusCode = 404;
+    }
+
+  } else if (request.method === "POST") {
+    console.log("We are now running POST...haste");
+    statusCode = 201;
+    var fullBody = '';
+    request.on('data', function(chunk) {
+      fullBody += chunk;
+      console.log(fullBody);
+    });
+    request.on('end', function() {
+      returnedObj.results.push(JSON.parse(fullBody));
+    });
+  } else {
+    statusCode = 418;
+  }
+
+  */
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
@@ -52,7 +119,7 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  response.end("Hello, World!");
+  response.end(responseEndBody);
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
@@ -64,10 +131,3 @@ var requestHandler = function(request, response) {
 //
 // Another way to get around this restriction is to serve you chat
 // client from this domain by setting up static file serving.
-var defaultCorsHeaders = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "access-control-allow-headers": "content-type, accept",
-  "access-control-max-age": 10 // Seconds.
-};
-
